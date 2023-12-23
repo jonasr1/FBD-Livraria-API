@@ -19,3 +19,4 @@ class SQLCliente:
     _SELECT_ALL = f"SELECT * from {_TABLE_NAME}"
     _SELECT_BY_ID = f"SELECT * FROM {_TABLE_NAME} WHERE {_COL_ID} = %s"
     _DELETE_BY_ID = f"DELETE FROM {_TABLE_NAME} WHERE id = %s"
+    _UPDATE_BY_ID = f"UPDATE {_TABLE_NAME} SET endereco = %s WHERE id = %s;"

@@ -76,3 +76,18 @@ class DAOCliente(SQLCliente):
             print(f"Erro ao deletar cliente: {str(e)}")
             self.connection.rollback()
             raise
+
+    def update_endereco_by_id(self, id, endereco):
+        result = self.get_by_id(id)
+        if not result:
+            return None
+        try:
+            query = self._UPDATE_BY_ID
+            with self.connection.cursor() as cursor:
+                cursor.execute(query, (endereco, id))
+                self.connection.commit()
+                return result
+        except Exception as e:
+            print(f"Erro ao atualizar cliente por ID: {str(e)}")
+            self.connection.rollback()
+            raise
