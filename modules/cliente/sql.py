@@ -15,6 +15,7 @@ class SQLCliente:
 
     _INSERT_INTO = f'INSERT INTO {_TABLE_NAME}({_COL_NOME}, {_COL_ENDERECO}, {_COL_CPF}) values(%s, %s, %s)'
     _SELECT_BY_NOME = f"SELECT * from {_TABLE_NAME} where {_COL_NOME} ilike %s"
-    _SELECT_BY_CPF = f"SELECT * from {_TABLE_NAME} where {_COL_CPF} %s"
+    _SELECT_BY_CPF = f"SELECT * from {_TABLE_NAME} where {_COL_CPF} = %s"
     _SELECT_ALL = f"SELECT * from {_TABLE_NAME}"
     _SELECT_BY_ID = f"SELECT * FROM {_TABLE_NAME} WHERE {_COL_ID} = %s"
+    _DELETE_BY_ID = f"DELETE FROM {_TABLE_NAME} WHERE id = %s"

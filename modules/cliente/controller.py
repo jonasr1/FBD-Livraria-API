@@ -1,3 +1,5 @@
+import traceback
+
 from flask import Blueprint, request, jsonify
 from modules.cliente.dao import DAOCliente
 from modules.cliente.modelo import Cliente
@@ -6,6 +8,21 @@ from modules.cliente.sql import SQLCliente
 cliente_controller = Blueprint('cliente_controller', __name__)
 dao_cliente = DAOCliente()
 module_name = 'cliente'
+
+@cliente_controller.route(f'/{module_name}/<int:id>', methods=['PUT'])
+def update_cliente(id: int):
+    pass
+
+@cliente_controller.route(f'/{module_name}/<int:id>/', methods=['DELETE'])
+def delete_cliente(id: int):
+    try:
+        success = dao_cliente.delete_by_id(id)
+        if success is not None:
+            return jsonify({'message': "Cliente deletado com sucesso", 'dados': success.__dict__}), 200
+        return jsonify({'message': "Cliente não existe", 'dados': {}}), 404
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"error": f"Erro ao deletar cliente: {str(e)}"}), 500
 
 
 def get_clientes():
@@ -18,12 +35,16 @@ def get_clientes():
 
 def create_cliente():
     data = request.json
+
+    if 'id' in data and data['id']:
+        return jsonify("O ID não deve ser fornecido, pois é autoincremento."), 400
+
     erros = []
     for campo in SQLCliente._CAMPOS_OBRIGATORIOS:
         if campo not in data.keys() or not data.get(campo, '').strip():
             erros.append(f"O campo {campo} é obrigatorio")
-    if dao_cliente.get_by_cpf(**data):
-        erros.append(f"Já existe um cliente com esse cpf")
+    if dao_cliente.get_by_cpf(data.get('cpf')):
+        erros.append("Já existe um cliente com esse cpf")
     if erros:
         response = jsonify(erros)
         response.status_code = 401
@@ -45,12 +66,45 @@ def get_or_create_clientes():
         return create_cliente()
 
 
-@cliente_controller.route(f'/{module_name}/<id>/', methods=['GET'])
-def get_categoria_by_id(id: int):
+def handle_result(result):
+    if result:
+        if isinstance(result, list):
+            return jsonify([cliente.__dict__ for cliente in result]), 200
+        else:
+            return jsonify(result.__dict__), 200
+    return jsonify("O cliente não existe"), 404
+
+
+@cliente_controller.route(f'/{module_name}/id/<id>/', methods=['GET'])
+def get_cliente_by_id(id: int):
     print('id', id)
-    categoria = dao_cliente.get_id(id)
-    if categoria:
-        return jsonify(categoria.__dict__), 200
-    return jsonify("A categoria não existe"), 404
+    cliente = dao_cliente.get_by_id(id)
+    return handle_result(cliente)
 
 
+def get_cliente_by_cpf(identificador):
+    cliente = dao_cliente.get_by_cpf(identificador)
+    return handle_result(cliente)
+
+
+def get_clientes_by_nome(identificador):
+    clientes = dao_cliente.get_by_nome(identificador)
+    return handle_result(clientes)
+
+
+@cliente_controller.route(f'/{module_name}/<path:identificador>/', methods=['GET'])
+def get_cliente_by_nome_or_cpf(identificador):
+    """
+       Retorna informações de um cliente com base no NOME ou CPF.
+
+       Parâmetros:
+       - identificador (str or int): O CPF (se for um número) ou Nome (se for uma string).
+
+       """
+    print(identificador)
+    if identificador.isdigit():  # Se o identificador for um número, assume que é um CPF
+        print("CPF")
+        return get_cliente_by_cpf(identificador)
+    else:
+        print("Nome")
+        return get_clientes_by_nome(identificador)
