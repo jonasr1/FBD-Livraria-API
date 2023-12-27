@@ -42,30 +42,25 @@ class DAOCliente(SQLCliente):
         results = [Cliente(**i) for i in results]
         return results
 
-    def _get_by_query(self, query, param):
+    def get_by_query(self, query, param):
         cursor = self.connection.cursor()
         cursor.execute(query, (param,))
-        result = cursor.fetchone()
-        if result:
-            cols = [desc[0] for desc in cursor.description]
-            result_dict = dict(zip(cols, result))
+        results = cursor.fetchall()
+        cols = [desc[0] for desc in cursor.description]
+        results = [dict(zip(cols, i)) for i in results]
+        if results:
+            result_dict = results[0]
             cliente_instance = Cliente(**result_dict)
             return cliente_instance
         return None
 
     def get_by_cpf(self, cpf):
         query = self._SELECT_BY_CPF
-        return self._get_by_query(query, cpf)
+        return self.get_by_query(query, cpf)
 
     def get_by_id(self, id):
         query = self._SELECT_BY_ID
-        return self._get_by_query(query, id)
-
-    def _execute_query(self, query, params):
-        with self.connection.cursor() as cursor:
-            cursor.execute(query, params)
-            self.connection.commit()
-            return True
+        return self.get_by_query(query, id)
 
     def delete_by_id(self, id):
         result = self.get_by_id(id)
@@ -73,24 +68,11 @@ class DAOCliente(SQLCliente):
             return None
         try:
             query = self._DELETE_BY_ID
-            if self._execute_query(query, (id,)):
-                return result# Para ser exibido qual o dado foi deletado
+            with self.connection.cursor() as cursor:
+                cursor.execute(query, (id,))
+                self.connection.commit()
+                return result
         except Exception as e:
             print(f"Erro ao deletar cliente: {str(e)}")
-            self.connection.rollback()
-            raise
-
-
-
-    def update_endereco_by_id(self, id, endereco):
-        result = self.get_by_id(id)
-        if not result:
-            return None
-        try:
-            query = self._UPDATE_ENDERECO_BY_ID
-            if self._execute_query(query, (endereco, id)):
-                return result# Para ser exibido qual o dado foi atualizado
-        except Exception as e:
-            print(f"Erro ao atualizar endereço do cliente por ID: {str(e)}")
             self.connection.rollback()
             raise

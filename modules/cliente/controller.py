@@ -9,28 +9,16 @@ cliente_controller = Blueprint('cliente_controller', __name__)
 dao_cliente = DAOCliente()
 module_name = 'cliente'
 
-
-@cliente_controller.route(f'/{module_name}/<int:id>/', methods=['PUT'])
-def update_endereco(id: int):
-    data = request.json
-    endereco = data.get('endereco')
-    print("Endereco:", endereco)
-    if endereco is None or not endereco.strip(''):
-        return jsonify({'error': "Endereco não fornecido"}), 400
-
-    updated_cliente = dao_cliente.update_endereco_by_id(id, endereco)
-    if updated_cliente is not None:
-        return jsonify({'message': f"Endereço atualizado com sucesso para {endereco}", 'dados': updated_cliente.__dict__}), 200
-    else:
-        return jsonify({'message': f"Não foi encontrado cliente com o id {id}", 'dados': {}}), 404
-
+@cliente_controller.route(f'/{module_name}/<int:id>', methods=['PUT'])
+def update_cliente(id: int):
+    pass
 
 @cliente_controller.route(f'/{module_name}/<int:id>/', methods=['DELETE'])
 def delete_cliente(id: int):
     try:
-        deleted_cliente = dao_cliente.delete_by_id(id)
-        if deleted_cliente is not None:
-            return jsonify({'message': "Cliente deletado com sucesso", 'dados': deleted_cliente.__dict__}), 200
+        success = dao_cliente.delete_by_id(id)
+        if success is not None:
+            return jsonify({'message': "Cliente deletado com sucesso", 'dados': success.__dict__}), 200
         return jsonify({'message': "Cliente não existe", 'dados': {}}), 404
     except Exception as e:
         traceback.print_exc()
@@ -40,7 +28,9 @@ def delete_cliente(id: int):
 def get_clientes():
     clientes = dao_cliente.get_all()
     results = [cliente.__dict__ for cliente in clientes]
-    return jsonify(results), 200
+    response = jsonify(results)
+    response.status_code = 200
+    return response
 
 
 def create_cliente():
@@ -56,12 +46,16 @@ def create_cliente():
     if dao_cliente.get_by_cpf(data.get('cpf')):
         erros.append("Já existe um cliente com esse cpf")
     if erros:
-        return jsonify(erros), 401
+        response = jsonify(erros)
+        response.status_code = 401
+        return response
 
     cliente = Cliente(**data)
     cliente = dao_cliente.salvar(cliente)
     print(cliente)
-    return jsonify('OK'), 201
+    response = jsonify('OK')
+    response.status_code = 201
+    return response
 
 
 @cliente_controller.route(f'/{module_name}/', methods=['GET', 'POST'])
