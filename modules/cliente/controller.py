@@ -22,7 +22,7 @@ def update_endereco(id: int):
     if updated_cliente is not None:
         return jsonify({'message': f"Endereço atualizado com sucesso para {endereco}", 'dados': updated_cliente.__dict__}), 200
     else:
-        return jsonify({'message': "Cliente não encontrado", 'dados': {}}), 404
+        return jsonify({'message': f"Não foi encontrado cliente com o id {id}", 'dados': {}}), 404
 
 
 @cliente_controller.route(f'/{module_name}/<int:id>/', methods=['DELETE'])

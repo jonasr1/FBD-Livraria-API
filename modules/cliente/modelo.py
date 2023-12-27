@@ -7,7 +7,3 @@ class Cliente():
 
     def __str__(self):
         return f"Cliente: {self.nome}, {self.endereco}, {self.cpf}"
-
-
-
-

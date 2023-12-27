@@ -13,12 +13,12 @@ class Connect:
 
     def create_tables(self):
         from modules.cliente.dao import DAOCliente
-        # from modules.marca.dao import DAOMarca
+        from modules.livro.dao import DAOLivro
         # from modules.produto.dao import DAOProduto
         cursor = self._connection.cursor()
         # cursor.execute(DAOMarca().create_table())
         cursor.execute(DAOCliente().create_table())
-        # cursor.execute(DAOProduto().create_table())
+        cursor.execute(DAOLivro().create_table())
         self._connection.commit()
         cursor.close()
 
