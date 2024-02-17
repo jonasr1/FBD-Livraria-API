@@ -4,8 +4,8 @@ class SQLCliente:
     _COL_NOME = "nome"
     _COL_ENDERECO = "endereco"
     _COL_CPF = "cpf"
-    _CAMPOS_OBRIGATORIOS =[_COL_CPF]
-
+    _CAMPOS_OBRIGATORIOS = [_COL_CPF]
+    _CAMPOS_UPDATE = [_COL_NOME, _COL_ENDERECO, _COL_CPF]
 
     _CREATE_TABLE = f'CREATE TABLE IF NOT EXISTS {_TABLE_NAME}' \
                     f'(id serial primary key,' \
@@ -18,5 +18,8 @@ class SQLCliente:
     _SELECT_BY_CPF = f"SELECT * from {_TABLE_NAME} where {_COL_CPF} = %s"
     _SELECT_ALL = f"SELECT * from {_TABLE_NAME}"
     _SELECT_BY_ID = f"SELECT * FROM {_TABLE_NAME} WHERE {_COL_ID} = %s"
-    _DELETE_BY_ID = f"DELETE FROM {_TABLE_NAME} WHERE id = %s"
-    _UPDATE_BY_ID = f"UPDATE {_TABLE_NAME} SET endereco = %s WHERE id = %s;"
+    _DELETE_BY_ID = f"DELETE FROM {_TABLE_NAME} WHERE {_COL_ID} = %s"
+
+    '''Verifica se o cliente tem algum pedido associado a ele.
+    '''
+    _CONSULTAR_PEDIDO = f"SELECT EXISTS (SELECT 1 FROM pedido WHERE id_cliente = %s);"

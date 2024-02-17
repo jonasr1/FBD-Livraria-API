@@ -12,11 +12,14 @@ class Connect:
         self._connection = psycopg2.connect(**config)
 
     def create_tables(self):
+        from modules.item_pedido.dao import DAOItemPedido
         from modules.cliente.dao import DAOCliente
         from modules.livro.dao import DAOLivro
-        # from modules.produto.dao import DAOProduto
+        from modules.pedido.dao import DAOPedido
+
         cursor = self._connection.cursor()
-        # cursor.execute(DAOMarca().create_table())
+        cursor.execute(DAOItemPedido().create_table())
+        cursor.execute(DAOPedido().create_table())
         cursor.execute(DAOCliente().create_table())
         cursor.execute(DAOLivro().create_table())
         self._connection.commit()

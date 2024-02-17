@@ -7,3 +7,10 @@ class Cliente():
 
     def __str__(self):
         return f"Cliente: {self.nome}, {self.endereco}, {self.cpf}"
+
+    def to_dict(self):
+        return {
+            'nome': self.nome,
+            'endereco': self.endereco,
+            'cpf': self.cpf
+        }

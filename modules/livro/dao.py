@@ -5,6 +5,7 @@ from service.connect import Connect
 
 class DAOLivro(SQLivro):
     def __init__(self, ):
+        self.description = None
         self.connection = Connect().get_instance()
 
     def create_table(self):
@@ -19,48 +20,51 @@ class DAOLivro(SQLivro):
         self.connection.commit()
         return livro
 
+    def _process_result(self, cursor, result):
+        if result is not None:
+            cols = [desc[0] for desc in cursor.description]
+            if isinstance(result, tuple):  # Result
+                result_dict = dict(zip(cols, result))
+                livro_instance = Livro(**result_dict)
+                return livro_instance
+            elif isinstance(result, list):  # Results
+                results = [dict(zip(cols, i)) for i in result]
+                results = [Livro(**i) for i in results]
+                return results
+            else:
+                print("Resultado inesperado:", result)
+        return None
+
     def get_all(self):
         query = self._SELECT_ALL
         cursor = self.connection.cursor()
         cursor.execute(query)
         results = cursor.fetchall()
-        cols = [desc[0] for desc in cursor.description]
-        results = [dict(zip(cols, i)) for i in results]
-        results = [Livro(**i) for i in results]
-        return results
+        return self._process_result(cursor, results)
 
     def _get_by_query(self, query, param):
         cursor = self.connection.cursor()
         cursor.execute(query, (param,))
-        
         # Para buscar todas as linhas que começam com a sequência fornecida, usa-se o %
         cursor.execute(query, (f"{param}%",))
-
         results = cursor.fetchall()
-        cols = [desc[0] for desc in cursor.description]
-        results = [dict(zip(cols, i)) for i in results]
-        results = [Livro(**i) for i in results]
-        return results
+        return self._process_result(cursor, results)
 
-    def get_by_titulo(self, titulo):
-        query = self._SELECT_BY_TITULO
-        return self._get_by_query(query, titulo)
+    def get_livro_by(self, tipo, parametro):
+        queries = {
+            'titulo': self._SELECT_BY_TITULO,
+            'autor': self._SELECT_BY_AUTOR,
+            'genero': self._SELECT_BY_GENERO
+        }
+        query = queries.get(tipo)
+        return self._get_by_query(query, parametro)
 
-    def get_by_autor(self, autor):
-        query = self._SELECT_BY_AUTOR
-        return self._get_by_query(query, autor)
-    
     def get_by_id(self, id):
         cursor = self.connection.cursor()
         query = self._SELECT_BY_ID
         cursor.execute(query, (id,))
         result = cursor.fetchone()
-        if result:
-            cols = [desc[0] for desc in cursor.description]
-            result_dict = dict(zip(cols, result))
-            livro_instance = Livro(**result_dict)
-            return livro_instance
-        return None
+        return self._process_result(cursor, result)
 
     def _execute_query(self, query, params):
         with self.connection.cursor() as cursor:
@@ -81,34 +85,23 @@ class DAOLivro(SQLivro):
             self.connection.rollback()
             raise
 
-    def get_by_preco_aproximado(self, preco:int):
+    def get_by_preco_aproximado(self, preco: int):
         cursor = self.connection.cursor()
         margem_tolerancia = 5
         query = self._SELECT_BY_PRECO_APROXIMADO
-        # Calcula a faixa de preço considerando a margem de tolerância
         preco_minimo = preco - margem_tolerancia
         preco_maximo = preco + margem_tolerancia
-        # Executa a consulta
         cursor.execute(query, (preco_minimo, preco_maximo), )
         results = cursor.fetchall()
-        cols = [desc[0] for desc in cursor.description]
-        results = [dict(zip(cols, i)) for i in results]
-        results = [Livro(**i) for i in results]
-        return results
+        return self._process_result(cursor, results)
 
     def get_by_livro(self, titulo, autor, data_publicacao):
         cursor = self.connection.cursor()
         query = self._SELECT_BY_TITULO_AUTOR_DATA
         cursor.execute(query, (titulo.lower(), autor.lower(), data_publicacao,))
         result = cursor.fetchone()
-        if result:
-            cols = [desc[0] for desc in cursor.description]
-            result_dict = dict(zip(cols, result))
-            livro_instance = Livro(**result_dict)
-            return livro_instance
-        return None
+        return self._process_result(cursor, result)
 
-    #tem que ver
     def update_preco_by_id(self, id, preco):
         result = self.get_by_id(id)
         if not result:
@@ -121,4 +114,3 @@ class DAOLivro(SQLivro):
             print(f"Erro ao atualizar preco do livro por ID: {str(e)}")
             self.connection.rollback()
             raise
-
