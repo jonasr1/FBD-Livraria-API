@@ -13,6 +13,7 @@ class Livro():
 
     def to_dict(self):
         return {
+            'id': self.id,
             'titulo': self.titulo,
             'autor': self.autor,
             'genero': self.genero,

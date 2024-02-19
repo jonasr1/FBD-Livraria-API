@@ -41,8 +41,7 @@ class DAOItemPedido(SQLItemPedido):
                 cursor.execute(query, (id,))
                 self.connection.commit()
                 return result
-        except Exception as e:
-            print(f"Erro ao deletar Item pedido: {str(e)}")
+        except Exception:
             self.connection.rollback()
             raise
 
@@ -118,7 +117,6 @@ class DAOItemPedido(SQLItemPedido):
             item_atualizado = self.get_by_id(id)
 
             return item_atualizado.__dict__, "Item pedido atualizado com sucesso"
-        except Exception as e:
-            print(f"Erro ao atualizar item_pedido: {str(e)}")
+        except Exception:
             self.connection.rollback()
             raise

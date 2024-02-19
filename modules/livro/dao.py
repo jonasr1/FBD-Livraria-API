@@ -31,8 +31,7 @@ class DAOLivro(SQLivro):
                 results = [dict(zip(cols, i)) for i in result]
                 results = [Livro(**i) for i in results]
                 return results
-            else:
-                print("Resultado inesperado:", result)
+            raise Exception("Resultado inesperado:", result)
         return None
 
     def get_all(self):
@@ -80,8 +79,7 @@ class DAOLivro(SQLivro):
             query = self._DELETE_BY_ID
             if self._execute_query(query, (id,)):
                 return result  # Para ser exibido qual o dado foi deletado
-        except Exception as e:
-            print(f"Erro ao deletar livro: {str(e)}")
+        except Exception:
             self.connection.rollback()
             raise
 
@@ -95,10 +93,10 @@ class DAOLivro(SQLivro):
         results = cursor.fetchall()
         return self._process_result(cursor, results)
 
-    def get_by_livro(self, titulo, autor, data_publicacao):
+    def get_by_livro(self, titulo, genero, autor, data_publicacao):
         cursor = self.connection.cursor()
-        query = self._SELECT_BY_TITULO_AUTOR_DATA
-        cursor.execute(query, (titulo.lower(), autor.lower(), data_publicacao,))
+        query = self._SELECT_BY_TITULO_GENERO_AUTOR_DATA
+        cursor.execute(query, (titulo.lower(), genero.lower(), autor.lower(), data_publicacao,))
         result = cursor.fetchone()
         return self._process_result(cursor, result)
 
@@ -110,7 +108,6 @@ class DAOLivro(SQLivro):
             query = self._UPDATE_PRECO_BY_ID
             if self._execute_query(query, (preco, id)):
                 return result  # Para ser exibido qual o dado foi atualizado
-        except Exception as e:
-            print(f"Erro ao atualizar preco do livro por ID: {str(e)}")
+        except Exception:
             self.connection.rollback()
             raise

@@ -14,7 +14,6 @@ module_name = 'livros'
 
 @livro_controller.route(f'/{module_name}/preco/<int:preco>', methods=['GET'])
 def get_livro_by_preco(preco: int):
-    print("preco")
     livros = dao_livro.get_by_preco_aproximado(preco)
     return handle_result(livros)
 
@@ -23,7 +22,6 @@ def get_livro_by_preco(preco: int):
 def update_preco(id: int):
     data = request.json
     preco = data.get('preco')
-    print("Preco:", preco)
     erros = []
     preco = validate_numeric_preco(preco, erros)
     if preco is None or not preco.strip(''):
@@ -42,7 +40,7 @@ def delete_livro(id: int):
     try:
         deleted_livro = dao_livro.delete_by_id(id)
         if deleted_livro is not None:
-            return jsonify({'message': "Livro deletado com sucesso", 'dados': deleted_livro.__dict__}), 200
+            return jsonify({'message': "Livro deletado com sucesso", 'dados': deleted_livro.to_dict()}), 200
         return jsonify({'message': f"Livro com id {id} não existe", 'dados': {}}), 404
     except Exception as e:
         traceback.print_exc()
@@ -74,12 +72,11 @@ def create_livro():
         data_publicacao = datetime.strptime(data['data_publicacao'], '%Y-%m-%d')
     except ValueError:
         return jsonify("A data de publicação deve estar no formato YYYY-MM-DD"), 400
-    instance_livro = dao_livro.get_by_livro(data.get('titulo'), data.get('autor'), data_publicacao)
+    instance_livro = dao_livro.get_by_livro(data.get('titulo'), data.get('genero'), data.get('autor'), data_publicacao)
     if instance_livro is not None:
-        return jsonify({'message': "Já existe um livro com o mesmo nome, autor e data de publicação",
+        return jsonify({'message': "Já existe um livro com o mesmo título, gênero, autor e data de publicação",
                         'dados': instance_livro.to_dict()}), 404
     livro = Livro(**data)
-    print(livro)
     livro = dao_livro.salvar(livro)
     return jsonify('OK'), 201
 
@@ -91,26 +88,10 @@ def get_or_create_livros():
     return create_livro()
 
 
-def handle_result(result):
-    if result:
-        if isinstance(result, list):
-            return jsonify([livro.to_dict() for livro in result]), 200
-        return jsonify(result.to_dict()), 200
-    return jsonify("Sem resultados para busca!"), 404
-
-
 @livro_controller.route(f'/{module_name}/<id>', methods=['GET'])
 def get_livro_by_id(id: int):
-    print('id', id)
     livro = dao_livro.get_by_id(id)
     return handle_result(livro)
-
-
-def get_livro(param, tipo: str):
-    if tipo not in ['titulo', 'genero', 'autor']:
-        return jsonify("Tipo de consulta inválido"), 401
-    livros = dao_livro.get_livro_by(tipo, param)
-    return handle_result(livros)
 
 
 @livro_controller.route(f'/{module_name}/genero/<genero>', methods=['GET'])
@@ -127,6 +108,20 @@ def get_livro_titulo(titulo):
 def get_livro_autor(autor):
     return get_livro(autor, 'autor')
 
+
+def get_livro(param, tipo: str):
+    if tipo not in ['titulo', 'genero', 'autor']:
+        return jsonify("Tipo de consulta inválido"), 401
+    livros = dao_livro.get_livro_by(tipo, param)
+    return handle_result(livros)
+
+
+def handle_result(result):
+    if result:
+        if isinstance(result, list):
+            return jsonify([livro.to_dict() for livro in result]), 200
+        return jsonify(result.to_dict()), 200
+    return jsonify("Sem resultados para busca!"), 404
 
 def convert_to_string(valor_campo):
     return str(valor_campo) if type(valor_campo) != str else valor_campo

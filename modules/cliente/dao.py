@@ -19,21 +19,6 @@ class DAOCliente(SQLCliente):
         self.connection.commit()
         return cliente
 
-    def _process_result(self, cursor, result):
-        if result is not None:
-            cols = [desc[0] for desc in cursor.description]
-            if isinstance(result, tuple):#Result
-                result_dict = dict(zip(cols, result))
-                cliente_instance = Cliente(**result_dict)
-                return cliente_instance
-            elif isinstance(result, list):#Results
-                results = [dict(zip(cols, i)) for i in result]
-                results = [Cliente(**i) for i in results]
-                return results
-            print("Resultado inesperado:", result)
-        print("Sem resultados. Método | _process_result")
-        return None
-
     def get_by_nome(self, nome):
         query = self._SELECT_BY_NOME
         cursor = self.connection.cursor()
@@ -76,7 +61,7 @@ class DAOCliente(SQLCliente):
         existe_pedido = cursor.fetchone()[0]
 
         if existe_pedido:
-            return None, "O cliente possui pelo menos um pedido."
+            return None, "O cliente possui pelo menos um pedido associado a ele."
 
         try:
             query = self._DELETE_BY_ID
@@ -84,41 +69,55 @@ class DAOCliente(SQLCliente):
                 cursor.execute(query, (id,))
                 self.connection.commit()
                 return result, "Cliente deletado com sucesso"
-        except Exception as e:
-            print(f"Erro ao deletar cliente: {str(e)}")
+        except Exception:
             self.connection.rollback()
             raise
 
     def update_cliente_by_id(self, id, data):
         try:
-            query = "UPDATE cliente SET "
+            exist_cpf = self.get_by_cpf(data.get('cpf'))
+            if exist_cpf:
+                return None, f"O CPF já registrado"
             set_clauses = []
             cliente_antigo = self.get_by_id(id)
             if not cliente_antigo:
                 return None, "Cliente não encontrado"
+            quant_campos = 0  # N° de campos para atualizar
+            n_reptidos = 0
             for campo in SQLCliente._CAMPOS_UPDATE:
                 novo_valor = data.get(campo, '').strip()
                 if campo in data.keys() and novo_valor:
+                    quant_campos += 1
                     if novo_valor == getattr(cliente_antigo, campo):
-                        return None, f"Nenhum campo foi atualizado, pois campo {campo} fornecido não pode ser igual ao anterior"
+                        n_reptidos += 1
+                        continue
                     set_clauses.append(f"{campo} = '{data.get(campo)}'")
-
+            if quant_campos == n_reptidos:
+                return None, "Cliente não atualizado, pois os dados são iguais aos registrados"
             if not set_clauses:
                 return None, "Nenhum campo fornecido para atualização"
-
-            query += ", ".join(set_clauses)
-            query += f" WHERE id = {id};"
-
+            set_clause_str = ", ".join(set_clauses)
+            query = f"UPDATE cliente SET {set_clause_str} WHERE id = {id};"
             with self.connection.cursor() as cursor:
                 cursor.execute(query)
                 self.connection.commit()
-
             cliente_atualizado = self.get_by_id(id)
-
             return cliente_atualizado.to_dict(), "Cliente atualizado com sucesso"
-
-        except Exception as e:
-            print(f"Erro ao atualizar cliente: {str(e)}")
+        except Exception:
             self.connection.rollback()
             raise
 
+    @staticmethod
+    def _process_result(cursor, result):
+        if result is not None:
+            cols = [desc[0] for desc in cursor.description]
+            if isinstance(result, tuple):  # Result
+                result_dict = dict(zip(cols, result))
+                cliente_instance = Cliente(**result_dict)
+                return cliente_instance
+            elif isinstance(result, list):  # Results
+                results = [dict(zip(cols, i)) for i in result]
+                results = [Cliente(**i) for i in results]
+                return results
+            raise Exception("Resultado inesperado:", result)
+        return None

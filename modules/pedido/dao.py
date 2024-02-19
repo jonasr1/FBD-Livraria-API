@@ -64,8 +64,7 @@ class DAOPedido(SQLPedido):
                 cursor.execute(query, (id_or_id_cliente,))
                 self.connection.commit()
                 return result, "Pedido deletado com sucesso"  # Para ser exibido qual o dado foi deletado
-        except Exception as e:
-            print(f"Erro ao deletar pedido: {str(e)}")
+        except Exception:
             self.connection.rollback()
             raise
 
@@ -89,8 +88,7 @@ class DAOPedido(SQLPedido):
             cursor.execute(query, (id_cliente, id,))
             self.connection.commit()
             return result, "Pedido atualizado com sucesso!"  # result, para ser exibido qual o dado foi atualizado
-        except Exception as e:
-            print(f"Erro ao atualizar id_cliente por ID: {str(e)}")
+        except Exception:
             self.connection.rollback()
             raise
 

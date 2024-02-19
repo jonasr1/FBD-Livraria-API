@@ -22,7 +22,6 @@ def update_cliente(id: int):
             return jsonify({'message': mensagem}), 404
 
     except Exception as e:
-        print(f"Erro ao processar a solicitação de atualização: {str(e)}")
         return jsonify({"error": f"Erro ao processar a solicitação de atualização: {str(e)}"}), 500
 
 
@@ -46,10 +45,8 @@ def get_clientes():
 
 def create_cliente():
     data = request.json
-
     if 'id' in data and data['id']:
         return jsonify("O ID não deve ser fornecido, pois é autoincremento."), 400
-
     erros = []
     for campo in SQLCliente._CAMPOS_OBRIGATORIOS:
         if campo not in data.keys() or not data.get(campo, '').strip():
@@ -71,23 +68,13 @@ def get_or_create_clientes():
     return create_cliente()
 
 
-def handle_result(result):
-    if result:
-        if isinstance(result, list):
-            return jsonify([cliente.__dict__ for cliente in result]), 200
-        return jsonify(result.__dict__), 200
-    return jsonify("O cliente não existe"), 404
-
-
-@cliente_controller.route(f'/{module_name}/<id>', methods=['GET'])
 def get_cliente_by_id(id: int):
-    print('id', id)
     cliente = dao_cliente.get_by_id(id)
     return handle_result(cliente)
 
-
-def get_cliente_by_cpf(identificador):
-    cliente = dao_cliente.get_by_cpf(identificador)
+@cliente_controller.route(f'/{module_name}/cpf/<cpf>', methods=['GET'])
+def get_cliente_by_cpf(cpf):
+    cliente = dao_cliente.get_by_cpf(cpf)
     return handle_result(cliente)
 
 
@@ -97,14 +84,15 @@ def get_clientes_by_nome(identificador):
 
 
 @cliente_controller.route(f'/{module_name}/<path:identificador>', methods=['GET'])
-def get_cliente_by_nome_or_cpf(identificador):
-    """
-       Retorna informações de um cliente com base no NOME ou CPF.
-
-       Parâmetros:
-       - identificador (str or int): O CPF (se for um número) ou Nome (se for uma string).
-
-       """
+def get_cliente_by_nome_or_id(identificador):
     if identificador.isdigit():  # Se o identificador for um número, assume que é um CPF
-        return get_cliente_by_cpf(identificador)
+        return get_cliente_by_id(identificador)
     return get_clientes_by_nome(identificador)
+
+
+def handle_result(result):
+    if result:
+        if isinstance(result, list):
+            return jsonify([cliente.__dict__ for cliente in result]), 200
+        return jsonify(result.__dict__), 200
+    return jsonify("O cliente não existe"), 404
