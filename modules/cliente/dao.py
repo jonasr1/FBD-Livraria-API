@@ -1,3 +1,5 @@
+import re
+
 from modules.cliente.modelo import Cliente
 from modules.cliente.sql import SQLCliente
 from service.connect import Connect
@@ -13,6 +15,9 @@ class DAOCliente(SQLCliente):
     def salvar(self, cliente: Cliente):
         if not isinstance(cliente, Cliente):
             raise Exception("Tipo inválido")
+        cpf_valido = self.validar_cpf(cliente.cpf)
+        if not cpf_valido:
+            raise Exception("O cpf não é valido!")
         query = self._INSERT_INTO
         cursor = self.connection.cursor()
         cursor.execute(query, (cliente.nome, cliente.endereco, cliente.cpf,))
@@ -106,6 +111,43 @@ class DAOCliente(SQLCliente):
         except Exception:
             self.connection.rollback()
             raise
+
+    def validar_cpf(self, cpf: str) -> bool:
+        """
+        Efetua a validação do CPF, tanto formatação quanto dígitos verificadores.
+
+        Parâmetros:
+        cpf (str): CPF a ser validado
+
+        Retorno:
+        bool:
+            - Falso, quando o CPF não possuir 11 caracteres numéricos;
+            - Falso, quando os dígitos verificadores forem inválidos;
+            - Verdadeiro, caso contrário.
+
+        Exemplos:
+        >>> validar_cpf('52998224725')
+        True
+        >>> validar_cpf('11111111111')
+        False
+        """
+        cpf = cpf if isinstance(cpf, str) else str(cpf)
+        # Obtém apenas os números do CPF, ignorando pontuações
+        numeros = [int(digito) for digito in cpf if digito.isdigit()]
+        # Verifica se o CPF possui 11 números ou se todos são iguais:
+        if len(numeros) != 11 or len(set(numeros)) == 1:
+            return False
+        # Validação do primeiro dígito verificador:
+        soma_produtos = sum(a * b for a, b in zip(numeros[0:9], range(10, 1, -1)))
+        digito_esperado = (soma_produtos * 10 % 11) % 10
+        if numeros[9] != digito_esperado:
+            return False
+        # Validação do segundo dígito verificador:
+        soma_produtos = sum(a * b for a, b in zip(numeros[0:10], range(11, 1, -1)))
+        digito_esperado = (soma_produtos * 10 % 11) % 10
+        if numeros[10] != digito_esperado:
+            return False
+        return True
 
     @staticmethod
     def _process_result(cursor, result):

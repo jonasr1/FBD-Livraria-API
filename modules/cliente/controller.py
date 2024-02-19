@@ -15,13 +15,12 @@ def update_cliente(id: int):
     try:
         dados_atualizados = request.json
         cliente_atualizado, mensagem = dao_cliente.update_cliente_by_id(id, dados_atualizados)
-
         if cliente_atualizado:
             return jsonify({'message': mensagem, 'dados': cliente_atualizado}), 200
         else:
             return jsonify({'message': mensagem}), 404
-
     except Exception as e:
+        traceback.print_exc()
         return jsonify({"error": f"Erro ao processar a solicitação de atualização: {str(e)}"}), 500
 
 
@@ -43,22 +42,48 @@ def get_clientes():
     return jsonify(results), 200
 
 
+'''
+CPF's TESTES
+44337897046
+95438460060
+95438460060
+11740903080
+53402644088
+52456894057
+52456894057
+88936798090
+70439921090
+67632085025
+86812008010
+33358407047
+'''
+
 def create_cliente():
     data = request.json
     if 'id' in data and data['id']:
         return jsonify("O ID não deve ser fornecido, pois é autoincremento."), 400
     erros = []
     for campo in SQLCliente._CAMPOS_OBRIGATORIOS:
+        if campo == 'cpf':
+            valor = str(data.get(campo, ''))
+            if isinstance(valor, str) and not valor.strip():
+                erros.append(f"O campo {campo} é obrigatório")
+            elif not isinstance(valor, str) and not valor:
+                erros.append(f"O campo {campo} é obrigatório")
+            continue
         if campo not in data.keys() or not data.get(campo, '').strip():
             erros.append(f"O campo {campo} é obrigatorio")
     if dao_cliente.get_by_cpf(data.get('cpf')):
         erros.append("Já existe um cliente com esse cpf")
     if erros:
         return jsonify(erros), 401
-
-    cliente = Cliente(**data)
-    cliente = dao_cliente.salvar(cliente)
-    return jsonify('OK'), 201
+    try:
+        cliente = Cliente(**data)
+        cliente = dao_cliente.salvar(cliente)
+        return jsonify('OK'), 201
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"error": f"Erro ao processar a solicitação de atualização: {str(e)}"}), 500
 
 
 @cliente_controller.route(f'/{module_name}', methods=['GET', 'POST'])
@@ -71,6 +96,7 @@ def get_or_create_clientes():
 def get_cliente_by_id(id: int):
     cliente = dao_cliente.get_by_id(id)
     return handle_result(cliente)
+
 
 @cliente_controller.route(f'/{module_name}/cpf/<cpf>', methods=['GET'])
 def get_cliente_by_cpf(cpf):
@@ -85,7 +111,7 @@ def get_clientes_by_nome(identificador):
 
 @cliente_controller.route(f'/{module_name}/<path:identificador>', methods=['GET'])
 def get_cliente_by_nome_or_id(identificador):
-    if identificador.isdigit():  # Se o identificador for um número, assume que é um CPF
+    if identificador.isdigit():  # Se o identificador for um número, assume que é um id
         return get_cliente_by_id(identificador)
     return get_clientes_by_nome(identificador)
 

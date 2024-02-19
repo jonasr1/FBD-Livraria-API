@@ -123,6 +123,7 @@ def handle_result(result):
         return jsonify(result.to_dict()), 200
     return jsonify("Sem resultados para busca!"), 404
 
+
 def convert_to_string(valor_campo):
     return str(valor_campo) if type(valor_campo) != str else valor_campo
 
@@ -130,17 +131,18 @@ def convert_to_string(valor_campo):
 def validate_numeric_preco(valor_campo, erros):
     valor_campo = convert_to_string(valor_campo)
     if not valor_campo.replace('.', '', 1).isdigit():
-        erros.append({'preco': "35.99", 'message': f"O campo preço deve ser um valor numérico positivo fornecido como o exibido"})
+        erros.append({'preco': "35.99",
+                      'message': f"O campo preço deve ser um valor numérico positivo fornecido como o exibido"})
     return valor_campo
 
 
 def validate_quantity(valor_campo, erros):
     valor_campo = convert_to_string(valor_campo)
     if not valor_campo.isdigit() or int(valor_campo) <= 0:
-        erros.append({ 'quantidade_estoque': 23, 'message': "Insira um valor inteiro positivo para a quantidade em estoque fornecido como o exibido "})
+        erros.append({'quantidade_estoque': 23,
+                      'message': "Insira um valor inteiro positivo para a quantidade em estoque fornecido como o exibido "})
 
 
 def validate_required(campo, data, erros):
     if campo not in data.keys() or not data.get(campo, '').strip():
         erros.append(f"O campo {campo} é obrigatório")
-

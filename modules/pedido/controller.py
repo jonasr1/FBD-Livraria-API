@@ -42,6 +42,7 @@ def create_pedido():
         pedido = dao_pedido.salvar(pedido)
         return jsonify('OK'), 201
     except Exception as e:
+        traceback.print_exc()
         return jsonify(str(e)), 400
 
 
@@ -67,7 +68,7 @@ def update_pedido(id: int):
         return jsonify({'message': mensagem}), 404
 
     except Exception as e:
-        print(f"Erro ao processar a solicitação de atualização: {str(e)}")
+        traceback.print_exc()
         return jsonify({"error": f"Erro ao processar a solicitação de atualização: {str(e)}"}), 500
 
 

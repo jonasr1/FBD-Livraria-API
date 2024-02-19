@@ -32,7 +32,6 @@ def create_item_pedido():
     data = request.json
     if ('id' in data and data['id']) or ('preco_unitario' in data and data['preco_unitario']):
         return jsonify("O id e o preco_unitario não deve ser fornecido, pois são atribuidos automaticamente."), 400
-
     for campo in SQLItemPedido._CAMPOS_OBRIGATORIOS:
         valor_campo = data.get(campo)
         if valor_campo is None:
@@ -45,6 +44,7 @@ def create_item_pedido():
         item_pedido = dao_item_pedido.salvar(item_pedido)
         return jsonify('OK'), 201
     except Exception as e:
+        traceback.print_exc()
         return jsonify(str(e)), 400
 
 
@@ -66,7 +66,7 @@ def update_item_pedido(id: int):
             return jsonify({'message': mensagem}), 404
 
     except Exception as e:
-        print(f"Erro ao processar a solicitação de atualização: {str(e)}")
+        traceback.print_exc()
         return jsonify({"error": f"Erro ao processar a solicitação de atualização: {str(e)}"}), 500
 
 
