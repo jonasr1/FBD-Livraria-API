@@ -11,28 +11,47 @@ class DAOLivro(SQLivro):
     def create_table(self):
         return self._CREATE_TABLE
 
-    def salvar(self, livro: Livro):
+    def salvar(self, livro: Livro, quantidade_estoque):
         if not isinstance(livro, Livro):
             raise Exception("Tipo inválido")
         query = self._INSERT_INTO
         cursor = self.connection.cursor()
-        cursor.execute(query, (livro.titulo, livro.autor, livro.genero, livro.quantidade_estoque, livro.preco, livro.data_publicacao,))
+        cursor.execute(query, (
+            livro.titulo, livro.autor, livro.genero, quantidade_estoque, livro.preco, livro.data_publicacao,))
         self.connection.commit()
         return livro
 
-    def _process_result(self, cursor, result):
-        if result is not None:
-            cols = [desc[0] for desc in cursor.description]
-            if isinstance(result, tuple):  # Result
-                result_dict = dict(zip(cols, result))
-                livro_instance = Livro(**result_dict)
-                return livro_instance
-            elif isinstance(result, list):  # Results
-                results = [dict(zip(cols, i)) for i in result]
-                results = [Livro(**i) for i in results]
-                return results
-            raise Exception("Resultado inesperado:", result)
-        return None
+    def update_livro(self, id, data, livro_antigo):
+        try:
+            set_clauses = []
+            quant_campos = 0  # N° de campos para atualizar
+            n_reptidos = 0
+            for campo in SQLivro._CAMPOS_UPDATE:
+                if campo == "quantidade_estoque":
+                    set_clauses.append(f"{campo} = '{str(data.get(campo))}'")
+                    quant_campos += 1
+                    continue
+                novo_valor = data.get(campo, '').strip()
+                if campo in data.keys() and novo_valor:
+                    quant_campos += 1
+                    if novo_valor == livro_antigo[campo]:
+                        n_reptidos += 1
+                        continue
+                    set_clauses.append(f"{campo} = '{data.get(campo)}'")
+            if quant_campos == n_reptidos:
+                return None, "Livro não atualizado, pois os dados são iguais aos registrados"
+            if not set_clauses:
+                return None, "Nenhum campo fornecido para atualização"
+            set_clause_str = ", ".join(set_clauses)
+            query = f"UPDATE livro SET {set_clause_str} WHERE id = {id};"
+            with self.connection.cursor() as cursor:
+                cursor.execute(query)
+                self.connection.commit()
+            livro_atualizado = self.get_by_id(id)
+            return livro_atualizado, "Livro atualizado com sucesso"
+        except Exception:
+            self.connection.rollback()
+            raise
 
     def get_all(self):
         query = self._SELECT_ALL
@@ -111,3 +130,18 @@ class DAOLivro(SQLivro):
         except Exception:
             self.connection.rollback()
             raise
+
+
+    def _process_result(self, cursor, result):
+        if result is not None:
+            cols = [desc[0] for desc in cursor.description]
+            if isinstance(result, tuple):  # Result
+                result_dict = dict(zip(cols, result))
+                livro_instance = Livro(**result_dict)
+                return livro_instance.to_dict()
+            elif isinstance(result, list):  # Results
+                results = [dict(zip(cols, i)) for i in result]
+                results = [Livro(**i) for i in results]
+                return results
+            raise Exception("Resultado inesperado:", result)
+        return None

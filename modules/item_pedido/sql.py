@@ -1,3 +1,6 @@
+from modules.livro.sql import SQLivro
+
+
 class SQLItemPedido:
     _TABLE_NAME = "item_pedido"
     _COL_ID = "id"
@@ -28,3 +31,4 @@ class SQLItemPedido:
     _SELECT_BY_ID_LIVRO = f"SELECT * FROM livro WHERE {_COL_ID} = %s"
 
     _CONSULTAR_PEDIDO = f"SELECT EXISTS (SELECT 1 FROM item_pedido WHERE id_pedido = %s);"
+    _ATUALIZAR_ESTOQUE_LIVRO = f"UPDATE {SQLivro._TABLE_NAME} SET {SQLivro._COL_QUANTIDADE_ESTOQUE} = %s WHERE {SQLivro._COL_ID} = %s"

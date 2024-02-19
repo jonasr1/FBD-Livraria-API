@@ -19,20 +19,67 @@ def get_livro_by_preco(preco: int):
 
 
 @livro_controller.route(f'/{module_name}/<int:id>', methods=['PUT'])
-def update_preco(id: int):
+def update_livro(id:int):
+    global data_publicacao
+    livro_antigo = dao_livro.get_by_id(id)
+    if not livro_antigo:
+        return jsonify("Livro não encontrado"), 200
     data = request.json
-    preco = data.get('preco')
+    if 'id' in data and data['id']:
+        return jsonify("O ID não deve ser fornecido, pois é autoincremento."), 400
     erros = []
-    preco = validate_numeric_preco(preco, erros)
-    if preco is None or not preco.strip(''):
-        erros.append({'error': "Preco não fornecido"})
+    for campo in SQLivro._CAMPOS_VERIFICAR_PUT:
+        valor_campo = data.get(campo, '')
+        if campo == SQLivro._COL_PRECO and campo in data:
+            validate_numeric_preco(valor_campo, erros)
+        if campo == SQLivro._COL_QUANTIDADE_ESTOQUE and campo in data:
+            validate_quantity(valor_campo, erros)
+        if campo == SQLivro._COL_PRECO or campo == SQLivro._COL_QUANTIDADE_ESTOQUE:
+            continue  # Não entra no validate_required quando é preço ou quantidade por causa do strip()
+        validate_required(campo, data, erros)
     if erros:
         return jsonify(erros), 404
-    updated_preco = dao_livro.update_preco_by_id(id, preco)
-    if updated_preco is not None:
-        return jsonify(
-            {'message': f"Preço atualizado com sucesso para {preco}", 'dados': updated_preco.__dict__}), 200
-    return jsonify({'message': f"Não foi encontrado livro o id {id}.", 'dados': {}}), 404
+    try:
+        if 'data_publicacao' in data:
+            data_publicacao = datetime.strptime(data['data_publicacao'], '%Y-%m-%d')
+    except ValueError:
+        return jsonify("A data de publicação deve estar no formato YYYY-MM-DD"), 400
+    if 'titulo' in data and 'genero' in data and 'autor' in data and 'data_publicacao' in data:
+        instance_livro = dao_livro.get_by_livro(data.get('titulo'), data.get('genero'), data.get('autor'), data_publicacao)
+        if instance_livro is not None:
+            return jsonify({'message': "Já existe um livro com o mesmo título, gênero, autor e data de publicação",
+                            'dados': instance_livro}), 404
+    livro_atualizar, mensagem = dao_livro.update_livro(id, data, livro_antigo)
+    try:
+        if livro_atualizar:
+            return jsonify({'message': mensagem, 'dados': livro_atualizar}), 200
+        else:
+            return jsonify({'message': mensagem}), 200
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"error": f"Erro ao processar a solicitação de atualização: {str(e)}"}), 500
+    # return jsonify('OK'), 201
+
+# @livro_controller.route(f'/{module_name}/<int:id>', methods=['PUT'])
+# def update_livro(id: int):
+#     data = request.json
+#     preco = data.get('preco')
+#     erros = []
+#     preco = validate_numeric_preco(preco, erros)
+#     if preco is None or not preco.strip(''):
+#         erros.append({'error': "Preco não fornecido"})
+#     validate_quantity(data.get('"quantidade_estoque"'), erros)
+#     if erros:
+#         return jsonify(erros), 404
+#     try:
+#         data_publicacao = datetime.strptime(data['data_publicacao'], '%Y-%m-%d')
+#     except ValueError:
+#         return jsonify("A data de publicação deve estar no formato YYYY-MM-DD"), 400
+#     updated_preco = dao_livro.update_preco_by_id(id, preco)
+#     if updated_preco is not None:
+#         return jsonify(
+#             {'message': f"Preço atualizado com sucesso para {preco}", 'dados': updated_preco.__dict__}), 200
+#     return jsonify({'message': f"Não foi encontrado livro o id {id}.", 'dados': {}}), 404
 
 
 @livro_controller.route(f'/{module_name}/<int:id>', methods=['DELETE'])
@@ -57,12 +104,13 @@ def create_livro():
     if 'id' in data and data['id']:
         return jsonify("O ID não deve ser fornecido, pois é autoincremento."), 400
     erros = []
+    quantidade = None
     for campo in SQLivro._CAMPOS_OBRIGATORIOS:
         valor_campo = data.get(campo, '')
         if campo == SQLivro._COL_PRECO:
             validate_numeric_preco(valor_campo, erros)
         if campo == SQLivro._COL_QUANTIDADE_ESTOQUE:
-            validate_quantity(valor_campo, erros)
+            quantidade, validate_quantity(valor_campo, erros)
         if campo == SQLivro._COL_PRECO or campo == SQLivro._COL_QUANTIDADE_ESTOQUE:
             continue  # Não entra no validate_required quando é preço ou quantidade por causa do strip()
         validate_required(campo, data, erros)
@@ -77,7 +125,7 @@ def create_livro():
         return jsonify({'message': "Já existe um livro com o mesmo título, gênero, autor e data de publicação",
                         'dados': instance_livro.to_dict()}), 404
     livro = Livro(**data)
-    livro = dao_livro.salvar(livro)
+    livro = dao_livro.salvar(livro, quantidade)
     return jsonify('OK'), 201
 
 
@@ -139,8 +187,8 @@ def validate_numeric_preco(valor_campo, erros):
 def validate_quantity(valor_campo, erros):
     valor_campo = convert_to_string(valor_campo)
     if not valor_campo.isdigit() or int(valor_campo) <= 0:
-        erros.append({'quantidade_estoque': 23,
-                      'message': "Insira um valor inteiro positivo para a quantidade em estoque fornecido como o exibido "})
+        erros.append({'message': "Insira um valor inteiro positivo para a quantidade em estoque"})
+        return valor_campo
 
 
 def validate_required(campo, data, erros):

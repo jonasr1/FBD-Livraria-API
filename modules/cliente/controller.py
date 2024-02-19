@@ -14,11 +14,14 @@ module_name = 'clientes'
 def update_cliente(id: int):
     try:
         dados_atualizados = request.json
-        cliente_atualizado, mensagem = dao_cliente.update_cliente_by_id(id, dados_atualizados)
+        cpf = dao_cliente.validar_cpf(dados_atualizados.get('cpf'))
+        if not cpf:
+            return jsonify("O cpf não é valido!"), 200
+        cliente_atualizado, mensagem = dao_cliente.update_cliente_by_id(id, dados_atualizados, cpf)
         if cliente_atualizado:
             return jsonify({'message': mensagem, 'dados': cliente_atualizado}), 200
         else:
-            return jsonify({'message': mensagem}), 404
+            return jsonify({'message': mensagem}), 200
     except Exception as e:
         traceback.print_exc()
         return jsonify({"error": f"Erro ao processar a solicitação de atualização: {str(e)}"}), 500
@@ -29,7 +32,7 @@ def delete_cliente(id: int):
     try:
         success, message = dao_cliente.delete_by_id(id)
         if success is not None:
-            return jsonify({'message': message, 'dados': success.__dict__}), 200
+            return jsonify({'message': message, 'dados': success}), 200
         return jsonify({'message': message, 'dados': {}}), 404
     except Exception as e:
         traceback.print_exc()
@@ -38,7 +41,7 @@ def delete_cliente(id: int):
 
 def get_clientes():
     clientes = dao_cliente.get_all()
-    results = [cliente.__dict__ for cliente in clientes]
+    results = [cliente.to_dict() for cliente in clientes]
     return jsonify(results), 200
 
 
@@ -58,6 +61,7 @@ CPF's TESTES
 33358407047
 '''
 
+
 def create_cliente():
     data = request.json
     if 'id' in data and data['id']:
@@ -73,13 +77,16 @@ def create_cliente():
             continue
         if campo not in data.keys() or not data.get(campo, '').strip():
             erros.append(f"O campo {campo} é obrigatorio")
-    if dao_cliente.get_by_cpf(data.get('cpf')):
+    cpf = dao_cliente.validar_cpf(data.get('cpf'))
+    if not cpf:
+        return jsonify("O cpf não é valido!"), 200
+    if dao_cliente.get_by_cpf(cpf):
         erros.append("Já existe um cliente com esse cpf")
     if erros:
-        return jsonify(erros), 401
+        return jsonify(erros), 200
     try:
         cliente = Cliente(**data)
-        cliente = dao_cliente.salvar(cliente)
+        cliente = dao_cliente.salvar(cliente, cpf)
         return jsonify('OK'), 201
     except Exception as e:
         traceback.print_exc()
@@ -119,6 +126,6 @@ def get_cliente_by_nome_or_id(identificador):
 def handle_result(result):
     if result:
         if isinstance(result, list):
-            return jsonify([cliente.__dict__ for cliente in result]), 200
-        return jsonify(result.__dict__), 200
-    return jsonify("O cliente não existe"), 404
+            return jsonify([cliente.to_dict() for cliente in result]), 200
+        return jsonify(result), 200
+    return jsonify("O cliente não existe"), 200

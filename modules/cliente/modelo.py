@@ -11,6 +11,5 @@ class Cliente():
     def to_dict(self):
         return {
             'nome': self.nome,
-            'endereco': self.endereco,
-            'cpf': self.cpf
+            'endereco': self.endereco
         }

@@ -1,5 +1,3 @@
-import re
-
 from modules.cliente.modelo import Cliente
 from modules.cliente.sql import SQLCliente
 from service.connect import Connect
@@ -12,15 +10,12 @@ class DAOCliente(SQLCliente):
     def create_table(self):
         return self._CREATE_TABLE
 
-    def salvar(self, cliente: Cliente):
+    def salvar(self, cliente: Cliente, cpf):
         if not isinstance(cliente, Cliente):
             raise Exception("Tipo inválido")
-        cpf_valido = self.validar_cpf(cliente.cpf)
-        if not cpf_valido:
-            raise Exception("O cpf não é valido!")
         query = self._INSERT_INTO
         cursor = self.connection.cursor()
-        cursor.execute(query, (cliente.nome, cliente.endereco, cliente.cpf,))
+        cursor.execute(query, (cliente.nome, cliente.endereco, cpf,))
         self.connection.commit()
         return cliente
 
@@ -62,12 +57,9 @@ class DAOCliente(SQLCliente):
         query = self._CONSULTAR_PEDIDO
         cursor = self.connection.cursor()
         cursor.execute(query, (id,))
-
         existe_pedido = cursor.fetchone()[0]
-
         if existe_pedido:
             return None, "O cliente possui pelo menos um pedido associado a ele."
-
         try:
             query = self._DELETE_BY_ID
             with self.connection.cursor() as cursor:
@@ -78,9 +70,9 @@ class DAOCliente(SQLCliente):
             self.connection.rollback()
             raise
 
-    def update_cliente_by_id(self, id, data):
+    def update_cliente_by_id(self, id, data, cpf):
         try:
-            exist_cpf = self.get_by_cpf(data.get('cpf'))
+            exist_cpf = self.get_by_cpf(cpf)
             if exist_cpf:
                 return None, f"O CPF já registrado"
             set_clauses = []
@@ -90,10 +82,12 @@ class DAOCliente(SQLCliente):
             quant_campos = 0  # N° de campos para atualizar
             n_reptidos = 0
             for campo in SQLCliente._CAMPOS_UPDATE:
+                if campo == 'cpf':
+                    continue
                 novo_valor = data.get(campo, '').strip()
                 if campo in data.keys() and novo_valor:
                     quant_campos += 1
-                    if novo_valor == getattr(cliente_antigo, campo):
+                    if novo_valor == cliente_antigo[campo]:
                         n_reptidos += 1
                         continue
                     set_clauses.append(f"{campo} = '{data.get(campo)}'")
@@ -107,12 +101,12 @@ class DAOCliente(SQLCliente):
                 cursor.execute(query)
                 self.connection.commit()
             cliente_atualizado = self.get_by_id(id)
-            return cliente_atualizado.to_dict(), "Cliente atualizado com sucesso"
+            return cliente_atualizado, "Cliente atualizado com sucesso"
         except Exception:
             self.connection.rollback()
             raise
 
-    def validar_cpf(self, cpf: str) -> bool:
+    def validar_cpf(self, cpf: str):
         """
         Efetua a validação do CPF, tanto formatação quanto dígitos verificadores.
 
@@ -124,12 +118,6 @@ class DAOCliente(SQLCliente):
             - Falso, quando o CPF não possuir 11 caracteres numéricos;
             - Falso, quando os dígitos verificadores forem inválidos;
             - Verdadeiro, caso contrário.
-
-        Exemplos:
-        >>> validar_cpf('52998224725')
-        True
-        >>> validar_cpf('11111111111')
-        False
         """
         cpf = cpf if isinstance(cpf, str) else str(cpf)
         # Obtém apenas os números do CPF, ignorando pontuações
@@ -147,7 +135,7 @@ class DAOCliente(SQLCliente):
         digito_esperado = (soma_produtos * 10 % 11) % 10
         if numeros[10] != digito_esperado:
             return False
-        return True
+        return ''.join(map(str, numeros))
 
     @staticmethod
     def _process_result(cursor, result):
@@ -156,7 +144,7 @@ class DAOCliente(SQLCliente):
             if isinstance(result, tuple):  # Result
                 result_dict = dict(zip(cols, result))
                 cliente_instance = Cliente(**result_dict)
-                return cliente_instance
+                return cliente_instance.to_dict()
             elif isinstance(result, list):  # Results
                 results = [dict(zip(cols, i)) for i in result]
                 results = [Cliente(**i) for i in results]

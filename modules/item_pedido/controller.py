@@ -21,7 +21,7 @@ def delete_item_pedido(id:int):
     try:
         deleted_item_pedido = dao_item_pedido.delete_by_id(id)
         if deleted_item_pedido is not None:
-            return jsonify({'message': "Item pedido deletado com sucesso", 'dados': deleted_item_pedido.__dict__}), 200
+            return jsonify({'message': "Item pedido deletado com sucesso", 'dados': deleted_item_pedido}), 200
         return jsonify({'message': f"O item pedido com id {id} não existe", 'dados': {}}), 404
     except Exception as e:
         traceback.print_exc()
@@ -92,8 +92,8 @@ def get_or_create_item_pedidos():
 def handle_result(result):
     if result:
         if isinstance(result, list):
-            return jsonify([item_pedido.__dict__ for item_pedido in result]), 200
-        return jsonify(result.__dict__), 200
+            return jsonify([item_pedido.to_dict() for item_pedido in result]), 200
+        return jsonify(result), 200
     return jsonify("Sem resultados para busca!"), 404
 
 

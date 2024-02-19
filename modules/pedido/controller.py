@@ -11,7 +11,7 @@ dao_pedido = DAOPedido()
 module_name = 'pedidos'
 
 
-@pedido_controller.route(f'/id_cliente/<int:id_cliente>/{module_name}', methods=['GET'])
+@pedido_controller.route(f'/{module_name}id_cliente/<int:id_cliente>', methods=['GET'])
 def get_pedidos_cliente_by_id(id_cliente: int):
     pedidos = dao_pedido.get_pedidos_clientes(id_cliente)
     return handle_result(pedidos)
@@ -24,8 +24,8 @@ def get_pedido_by_id(id: int):
 
 
 def get_pedidos():
-    livros = dao_pedido.get_all()
-    return handle_result(livros)
+    pedidos = dao_pedido.get_all()
+    return handle_result(pedidos)
 
 
 def create_pedido():

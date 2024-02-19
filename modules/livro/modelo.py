@@ -13,11 +13,9 @@ class Livro():
 
     def to_dict(self):
         return {
-            'id': self.id,
             'titulo': self.titulo,
             'autor': self.autor,
             'genero': self.genero,
-            'quantidade_estoque': self.quantidade_estoque,
             'preco': self.preco,
             'data_publicacao': self.data_publicacao.strftime('%Y-%m-%d') if self.data_publicacao else None
         }
