@@ -19,7 +19,7 @@ def get_livro_by_preco(preco: int):
 
 
 @livro_controller.route(f'/{module_name}/<int:id>', methods=['PUT'])
-def update_livro(id:int):
+def update_livro(id: int):
     global data_publicacao
     livro_antigo = dao_livro.get_by_id(id)
     if not livro_antigo:
@@ -45,7 +45,8 @@ def update_livro(id:int):
     except ValueError:
         return jsonify("A data de publicação deve estar no formato YYYY-MM-DD"), 400
     if 'titulo' in data and 'genero' in data and 'autor' in data and 'data_publicacao' in data:
-        instance_livro = dao_livro.get_by_livro(data.get('titulo'), data.get('genero'), data.get('autor'), data_publicacao)
+        instance_livro = dao_livro.get_by_livro(data.get('titulo'), data.get('genero'), data.get('autor'),
+                                                data_publicacao)
         if instance_livro is not None:
             return jsonify({'message': "Já existe um livro com o mesmo título, gênero, autor e data de publicação",
                             'dados': instance_livro}), 404
@@ -58,28 +59,6 @@ def update_livro(id:int):
     except Exception as e:
         traceback.print_exc()
         return jsonify({"error": f"Erro ao processar a solicitação de atualização: {str(e)}"}), 500
-    # return jsonify('OK'), 201
-
-# @livro_controller.route(f'/{module_name}/<int:id>', methods=['PUT'])
-# def update_livro(id: int):
-#     data = request.json
-#     preco = data.get('preco')
-#     erros = []
-#     preco = validate_numeric_preco(preco, erros)
-#     if preco is None or not preco.strip(''):
-#         erros.append({'error': "Preco não fornecido"})
-#     validate_quantity(data.get('"quantidade_estoque"'), erros)
-#     if erros:
-#         return jsonify(erros), 404
-#     try:
-#         data_publicacao = datetime.strptime(data['data_publicacao'], '%Y-%m-%d')
-#     except ValueError:
-#         return jsonify("A data de publicação deve estar no formato YYYY-MM-DD"), 400
-#     updated_preco = dao_livro.update_preco_by_id(id, preco)
-#     if updated_preco is not None:
-#         return jsonify(
-#             {'message': f"Preço atualizado com sucesso para {preco}", 'dados': updated_preco.__dict__}), 200
-#     return jsonify({'message': f"Não foi encontrado livro o id {id}.", 'dados': {}}), 404
 
 
 @livro_controller.route(f'/{module_name}/<int:id>', methods=['DELETE'])
@@ -164,6 +143,33 @@ def get_livro(param, tipo: str):
     return handle_result(livros)
 
 
+def remover_adicionar_estoque_livro(id: int, operacao: str):
+    try:
+        quantidade = request.json.get('quantidade_estoque')
+        erros = []
+        quantidade = validate_quantity(quantidade, erros)
+        if erros:
+            return jsonify(erros), 412
+        livro = dao_livro.get_by_id(id)
+        if livro is None:
+            return jsonify({'message': f'O livro de ID {id} não foi encontrado'}), 404
+        livro_update = dao_livro.remover_adicionar_estoque(operacao, quantidade, id)
+        return jsonify({'message': f'A quantidade do livro foi atualizada de {livro.get("quantidade_estoque")} para {livro_update.get("quantidade_estoque")}.','livro': livro_update}), 200
+    except Exception:
+        traceback.print_exc()
+        return jsonify({'error': 'Ocorreu um erro ao manipular o estoque do livro'}), 500
+
+
+@livro_controller.route(f'/{module_name}/<int:id>/adicionar-estoque', methods=['POST'])
+def adicionar_estoque_livro(id: int):
+    return remover_adicionar_estoque_livro(id, "adicionar")
+
+
+@livro_controller.route(f'/{module_name}/<int:id>/remover-estoque', methods=['POST'])
+def remover_estoque_livro(id: int):
+    return remover_adicionar_estoque_livro(id, "remover")
+
+
 def handle_result(result):
     if result:
         if isinstance(result, list):
@@ -188,7 +194,7 @@ def validate_quantity(valor_campo, erros):
     valor_campo = convert_to_string(valor_campo)
     if not valor_campo.isdigit() or int(valor_campo) <= 0:
         erros.append({'message': "Insira um valor inteiro positivo para a quantidade em estoque"})
-        return valor_campo
+    return valor_campo
 
 
 def validate_required(campo, data, erros):

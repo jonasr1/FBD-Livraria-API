@@ -60,14 +60,6 @@ class DAOLivro(SQLivro):
         results = cursor.fetchall()
         return self._process_result(cursor, results)
 
-    def _get_by_query(self, query, param):
-        cursor = self.connection.cursor()
-        cursor.execute(query, (param,))
-        # Para buscar todas as linhas que começam com a sequência fornecida, usa-se o %
-        cursor.execute(query, (f"{param}%",))
-        results = cursor.fetchall()
-        return self._process_result(cursor, results)
-
     def get_livro_by(self, tipo, parametro):
         queries = {
             'titulo': self._SELECT_BY_TITULO,
@@ -83,12 +75,6 @@ class DAOLivro(SQLivro):
         cursor.execute(query, (id,))
         result = cursor.fetchone()
         return self._process_result(cursor, result)
-
-    def _execute_query(self, query, params):
-        with self.connection.cursor() as cursor:
-            cursor.execute(query, params)
-            self.connection.commit()
-            return True
 
     def delete_by_id(self, id):
         result = self.get_by_id(id)
@@ -131,6 +117,19 @@ class DAOLivro(SQLivro):
             self.connection.rollback()
             raise
 
+    def remover_adicionar_estoque(self, operacao, quantidade, id):
+        if operacao == "adicionar":
+            query = self._ADICONAR_ESTOQUE
+        elif operacao == "remover":
+            query = self._REMOVER_ESTOQUE
+        try:
+            cursor = self.connection.cursor()
+            cursor.execute(query, (quantidade, id,))
+            self.connection.commit()
+            return self.get_by_id(id)
+        except Exception:
+            self.connection.rollback()
+            raise
 
     def _process_result(self, cursor, result):
         if result is not None:
@@ -145,3 +144,18 @@ class DAOLivro(SQLivro):
                 return results
             raise Exception("Resultado inesperado:", result)
         return None
+
+    def _get_by_query(self, query, param):
+        cursor = self.connection.cursor()
+        cursor.execute(query, (param,))
+        # Para buscar todas as linhas que começam com a sequência fornecida, usa-se o %
+        cursor.execute(query, (f"{param}%",))
+        results = cursor.fetchall()
+        return self._process_result(cursor, results)
+
+    def _execute_query(self, query, params):
+        with self.connection.cursor() as cursor:
+            cursor.execute(query, params)
+            self.connection.commit()
+            return True
+

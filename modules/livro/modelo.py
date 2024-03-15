@@ -17,5 +17,6 @@ class Livro():
             'autor': self.autor,
             'genero': self.genero,
             'preco': self.preco,
+            'quantidade_estoque': self.quantidade_estoque,
             'data_publicacao': self.data_publicacao.strftime('%Y-%m-%d') if self.data_publicacao else None
         }
